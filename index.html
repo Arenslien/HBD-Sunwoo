@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <style>
+    canvas {
+      border: 1px solid black;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    
+    /* 수직 스크롤 바 숨기기 */
+    ::-webkit-scrollbar-vertical {
+      display: none;
+    }
+    * {
+      scrollbar-width: none;
+    }
+    </style>
+  </head>
+  <body>
+    <!-- main html code start-->
+    <canvas id="HBD" width="1200" height="1080"></canvas>
+    <!-- main html code end-->
+
+    <script>
+      // initial variable
+      canvas = document.getElementById("HBD")
+      ctx = canvas.getContext('2d')
+      particles = []
+      screenWidth = window.innerWidth
+      screenHeight = window.innerHeight
+
+      // method to resize the Canvas
+      resizeCanvas = () => {
+        screenWidth = window.innerWidth
+        screenHeight = window.innerHeight
+
+        canvas.width = screenWidth
+        canvas.height = screenHeight
+      }
+
+      
+      // method to draw in canvas
+      draw = (x, y, color, s) => {
+        ctx.fillStyle = color
+        ctx.fillRect(x, y, s, s)
+      }
+
+      // method to create a new particle
+      particle = (x, y, color) => {
+        return { "x": x, "y": y, "vx": 0, "vy": 0, "color": color }
+      }
+
+      // method to get Random number
+      getRandomX = () => {
+        return Math.random() * (screenWidth-100) + 50
+      }
+      getRandomY = () => {
+        return Math.random() * (screenHeight-100) + 50
+      }
+
+      // method to create the particles
+      createParticles = (number, color) => {
+        group = []
+
+        for (let i = 0; i < number; i++) {
+          group.push(particle(getRandomX(), getRandomY(), color))
+          particles.push(group[i])
+        }
+
+        return group
+      }
+
+      // method to create a rule for relationship of particle 
+      rule = (particles1, particles2, g) => {
+
+        for (let i=0; i<particles1.length; i++) {
+          fx = 0
+          fy = 0
+
+          for(let j=0; j<particles2.length; j++) {
+            a = particles1[i]
+            b = particles2[j]
+    
+            dx = a.x - b.x
+            dy = a.y - b.y
+            d = Math.sqrt(dx*dx + dy*dy)
+    
+            if (d > 0 && d < 80) {
+              F = g * 1/d
+              fx += (F * dx)
+              fy += (F * dy)
+            }
+            a.vx = (a.vx + fx)*0.3
+            a.vy = (a.vy +fy)*0.3
+
+            if (a.x <= 0 || a.x >= screenWidth) { a.vx *= -1 }
+            if (a.y <= 0 || a.y >= screenHeight) { a.vy *= -1 }
+
+            a.x += a.vx
+            a.y += a.vy
+          }
+
+        }
+
+      }
+      yellow = createParticles(200, "yellow")
+      red = createParticles(200, "red")
+      // green = createParticles(100, "green")
+      // white = createParticles(100, "white")
+
+      window.onload = resizeCanvas
+      window.onresize = resizeCanvas
+
+      // update method
+      update = () => {
+        rule(red, red, -0.02)
+        rule(red, yellow, 0.3)
+        rule(yellow, yellow, 0.01)
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.fillStyle = "black"
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        for (let i = 0; i < particles.length; i++) {
+          draw(particles[i].x, particles[i].y, particles[i].color, 5)
+        }
+        
+        requestAnimationFrame(update)
+      }
+      update();
+
+      
+    </script>
+
+  </body>
+
+</html>
