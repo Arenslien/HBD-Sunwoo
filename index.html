@@ -2,148 +2,229 @@
 
 <html>
   <head>
-    <style>
-    canvas {
-      border: 1px solid black;
-      margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      padding: 0;
-      margin: 0;
-      width: 100%;
-      height: 100%;
-    }
-    ::-webkit-scrollbar {
-      display: none;
-    }
-    
-    /* 수직 스크롤 바 숨기기 */
-    ::-webkit-scrollbar-vertical {
-      display: none;
-    }
-    * {
-      scrollbar-width: none;
-    }
-    </style>
+    <title>HBD-Sunwoo</title>
+    <link rel="stylesheet" href="base.css">
+    <meta charset="utf-8">
   </head>
   <body>
-    <!-- main html code start-->
+    <!-- canvas tag -->
     <canvas id="HBD" width="1200" height="1080"></canvas>
-    <!-- main html code end-->
 
+    <!-- script tag-->
     <script>
-      // initial variable
+      // 0. 초기 변수 선언
       canvas = document.getElementById("HBD")
-      ctx = canvas.getContext('2d')
-      particles = []
+      ctx = canvas.getContext('2d')      
+      allParticles = []
+      txtParticles = []
+      allFireworks = []
       screenWidth = window.innerWidth
       screenHeight = window.innerHeight
+      mouse = { "x": 0 , "y": 0, "vx": 0, "vy": 0, "fixed": true, "mass": 5000 }
 
-      // method to resize the Canvas
-      resizeCanvas = () => {
+      // 1. 반응형 레이아웃
+      // 1.1 resize 메소드 구현
+      const resizeCanvas = () => {     
         screenWidth = window.innerWidth
         screenHeight = window.innerHeight
-
         canvas.width = screenWidth
         canvas.height = screenHeight
+        console.log("resizeCanvas: width: "+ canvas.width +" height: "+ canvas.height)
       }
+      // 1.2 resize 메소드 할당
+      window.onload = resizeCanvas
+      window.onresize = resizeCanvas
 
-      
-      // method to draw in canvas
-      draw = (x, y, color, s) => {
-        ctx.fillStyle = color
-        ctx.fillRect(x, y, s, s)
-      }
+      // 2. 반응형 마우스 이벤트
+      mouseOn = false
+      // 2.1 mousemove 이벤트리스너 구현
+      canvas.addEventListener("mousemove", function (event) {
+        mouseOn = true
+        mouse.x = event.offsetX
+        mouse.y= event.offsetY
+      })
+      // 2.2 mousedown(click) 이벤트리스너 구현
+      canvas.addEventListener("mousedown", function (event) {
+        let currentMouseX = event.offsetX
+        let currentMouseY = event.offsetY
+        const color = `rgb(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255})`
 
-      // method to create a new particle
-      particle = (x, y, color) => {
-        return { "x": x, "y": y, "vx": 0, "vy": 0, "color": color }
-      }
-
-      // method to get Random number
-      getRandomX = () => {
-        return Math.random() * (screenWidth-100) + 50
-      }
-      getRandomY = () => {
-        return Math.random() * (screenHeight-100) + 50
-      }
-
-      // method to create the particles
-      createParticles = (number, color) => {
-        group = []
-
-        for (let i = 0; i < number; i++) {
-          group.push(particle(getRandomX(), getRandomY(), color))
-          particles.push(group[i])
+        // 폭죽 생성
+        for (let i=0; i<30; i++) {
+          const firework = new Firework(currentMouseX, currentMouseY, color)
+          allFireworks.push(firework)
         }
+      })
 
+      // 폭죽 클래스 정의
+      class Firework {
+        constructor(x, y, color) {
+          this.x = x
+          this.y = y
+          this.color = color
+          this.radius = 3
+          this.velocity = {
+            x: Math.random() * 6 - 3,
+            y: Math.random() * 6 - 3
+          }
+          this.opacity = 1
+          this.fade = Math.random() * 0.03 + 0.02
+        }
+        // 폭죽 그리기 메소드
+        drawFirework() {
+          ctx.beginPath()
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2)
+          ctx.fillStyle = this.color
+          // ctx.globalAlpha = this.opacity
+          ctx.fill()
+          ctx.closePath()
+        }
+        // 폭죽 업데이트 메소드
+        update() {
+          this.x += this.velocity.x
+          this.y += this.velocity.y
+          this.opacity -= this.fade
+          this.drawFirework()
+        }
+      }
+
+      // 3. Text 생성
+      celebrationText = ["선우야 생일 축하해!"]
+      
+      // 4. Particle 생성
+      // 4.1 Particle 객체 생성 메소드 구현
+      const particle = (x, y, color) => {
+        return { "x": x, "y": y, "vx": 0, "vy": 0, "color": color, "fixed": false, "mass": 1 }
+      }
+      // 4.2 Particle 좌표 Random
+      const getRandomX = () => { return Math.random() * (screenWidth-100) + 50 }
+      const getRandomY = () => { return Math.random() * (screenHeight-100) + 50 }
+      // 4.3 Particle 생성 메소드 구현
+      createParticles = (number, color) => {
+        let group = []
+        for (let i=0; i<number; i++) {
+          group.push(particle(getRandomX(), getRandomY(), color))
+          allParticles.push(group[i])
+        }
         return group
       }
+      // 4.4 Particle Canvas에 생성    
+      white = createParticles(100, "white")
+      green = createParticles(100, "green")
+      blue = createParticles(100, "blue")
 
-      // method to create a rule for relationship of particle 
-      rule = (particles1, particles2, g) => {
-
+      // 5. Mini 만유인력 법칙
+      const rule = (particles1, particles2, g) => {
         for (let i=0; i<particles1.length; i++) {
           fx = 0
           fy = 0
-
           for(let j=0; j<particles2.length; j++) {
             a = particles1[i]
             b = particles2[j]
-    
             dx = a.x - b.x
             dy = a.y - b.y
             d = Math.sqrt(dx*dx + dy*dy)
-    
-            if (d > 0 && d < 80) {
+            if (d > 0 && d < 100) {
+              // F = g * 1 /(d*d)
+              // F = g * a.mass * b.mass / (d * d)
               F = g * 1/d
               fx += (F * dx)
               fy += (F * dy)
             }
-            a.vx = (a.vx + fx)*0.3
-            a.vy = (a.vy +fy)*0.3
 
+            a.vx = (a.vx + fx)*0.5
+            a.vy = (a.vy + fy)*0.5
             if (a.x <= 0 || a.x >= screenWidth) { a.vx *= -1 }
             if (a.y <= 0 || a.y >= screenHeight) { a.vy *= -1 }
-
             a.x += a.vx
             a.y += a.vy
           }
+        }
+      }
 
+      const rule2 = (particles1, mouse, g) => {
+          for (let i = 0; i < particles1.length; i++) {
+            fx = 0
+            fy = 0
+            a = particles1[i]
+            dx = a.x - mouse.x
+            dy = a.y - mouse.y
+            d = Math.sqrt(dx * dx + dy * dy)
+            if (d > 0 && d < 500) {
+              F = g * a.mass * mouse.mass / (d * d)
+              a_a = F / a.mass
+              b_a = F / mouse.mass
+              fx += (F * dx)
+              fy += (F * dy)
+            }
+            a.vx = (a.vx + fx) * 0.7
+            a.vy = (a.vy + fy) * 0.7
+            if (a.vx > 2) {
+              a.vx = a.vx/a.vx * 2
+            }
+            if (a.vy > 2) {
+              a.vy = a.vy/a.vy * 2
+            }
+            if (a.x <= -1 || a.x >= screenHeight) { a.vx *= -1 }
+            if (a.y <= -1 || a.y >= screenHeight) { a.vy *= -1 }
+            a.x += a.vx
+            a.y += a.vy
+          }
         }
 
+      // 6. 모든 상호작용 업데이트
+      // 6.1 draw 메소드 (Particle 그리기용)
+      const draw = (x, y, color, s) => {
+        ctx.fillStyle = color
+        ctx.fillRect(x, y, s, s)
       }
-      yellow = createParticles(200, "yellow")
-      red = createParticles(200, "red")
-      // green = createParticles(100, "green")
-      // white = createParticles(100, "white")
 
-      window.onload = resizeCanvas
-      window.onresize = resizeCanvas
-
-      // update method
+      // 6.2 업데이트 메소드 구현
       update = () => {
-        rule(red, red, -0.02)
-        rule(red, yellow, 0.3)
-        rule(yellow, yellow, 0.01)
+        // 6.2.1 Particle 물리 법칙 설정 (각 Particle 위치 업데이트)
+        rule(blue, blue, 0.01)
+        rule(green, blue, -0.05)
+        rule(green, green, 0.003)
+        rule(blue, green, 0.007)
+        rule(white, green, -0.005)
+        rule(white, blue, 0.01)
+        rule(green, white, 0.01)
+        if (mouseOn) { 
+          rule2(blue, mouse, 0.04)
+          rule2(white, mouse, 0.02)
+          rule2(green, mouse, -0.05)
+        }
         
+        // 6.2.3 배경 그리기
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         ctx.fillStyle = "black"
         ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-        for (let i = 0; i < particles.length; i++) {
-          draw(particles[i].x, particles[i].y, particles[i].color, 5)
+        
+        // 6.2.4 Particle 그리기 
+        for (let i = 0; i < allParticles.length; i++) {
+          draw(allParticles[i].x, allParticles[i].y, allParticles[i].color, 5)
         }
         
+        // 6.2.5 Firework 시각화
+        for (let i = 0; i < allFireworks.length; i++) {
+          allFireworks[i].update();
+        }
+        for (let i = 0; i < allFireworks.length; i++) {
+          if (allFireworks[i].opacity <= 0) {
+            allFireworks.splice(i, 1); // 투명도가 0 이하인 폭죽은 배열에서 제거
+          }
+        }
+        // 6.2.6 Text 시각화
+        ctx.font = '3em Arial'; // 폰트 크기 및 종류 설정
+        ctx.fillStyle = 'white';   // 텍스트 색상 설정
+        ctx.textAlign = 'center'; // 텍스트 정렬 설정 (가운데 정렬)
+        ctx.fillText(celebrationText[0], canvas.width / 2, canvas.height / 2);
+        
         requestAnimationFrame(update)
+        mouseOn = false
       }
       update();
-
-      
     </script>
-
   </body>
 
 </html>
